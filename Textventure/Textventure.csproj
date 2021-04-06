@@ -1,0 +1,18 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Remove="Components\Interaction.cs" />
+    <Compile Remove="Components\ModelsOld.cs" />
+    <Compile Remove="Components\WorldOld.cs" />
+    <Compile Remove="Engine\EngineOld.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Components\Interaction.cs.txt" />
+  </ItemGroup>
+
+</Project>
