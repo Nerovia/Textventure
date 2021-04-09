@@ -669,14 +669,5 @@ namespace Textventure.Components
         protected virtual void OnFocusChanged(FocusEventArgs args) => FocusChanged?.Invoke(this, args);
         public event FocusEventHandler FocusChanged;
     }
-
-    public class ExitModel : InteractionModel
-    {
-        public ExitModel(Element target)
-        {
-            Name = target.Name;
-            Impact = $">{Name}";
-        }
-    }
 }
      

@@ -8,7 +8,7 @@
     <Compile Remove="Components\Interaction.cs" />
     <Compile Remove="Components\ModelsOld.cs" />
     <Compile Remove="Components\WorldOld.cs" />
-    <Compile Remove="Engine\EngineOld.cs" />
+    <Compile Remove="UI\EngineOld.cs" />
   </ItemGroup>
 
   <ItemGroup>
