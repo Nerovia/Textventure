@@ -343,7 +343,7 @@ namespace Textventure.Components
 
     public class Impact
     {
-        public static Impact[] ParseCollection(string expression)
+        public static List<Impact> ParseCollection(string expression)
         {
             if (expression is null)
                 return null;
@@ -351,7 +351,7 @@ namespace Textventure.Components
             var impacts = new List<Impact>();
             foreach (var e in expressions)
                 impacts.Add(Parse(e));
-            return impacts.ToArray();
+            return impacts;
         }
 
         public static Impact Parse(string expression)

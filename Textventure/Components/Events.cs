@@ -8,27 +8,27 @@ namespace Textventure.Components
 
     public class FocusEventArgs : EventArgs
     {
-        public FocusEventArgs (Element from, Element to)
+        public FocusEventArgs (Scene from, Scene to)
         {
             From = from;
             To = to;
         }
 
-        public Element From { get; }
-        public Element To { get; }
+        public Scene From { get; }
+        public Scene To { get; }
     }
 
     public delegate void ImpactEventEventHandler(object sender, ImpactEventEventArgs args);
 
     public class ImpactEventEventArgs : EventArgs
     {
-        public ImpactEventEventArgs(Element source, string argument)
+        public ImpactEventEventArgs(Scene source, string argument)
         {
             Source = source;
             Argument = argument;
         }
 
-        public Element Source { get; }
+        public Scene Source { get; }
         public string Argument { get; }
     }
 
@@ -51,13 +51,13 @@ namespace Textventure.Components
 
     public class InventoryEventArgs
     {
-        public InventoryEventArgs(Element item, bool state)
+        public InventoryEventArgs(string key, bool state)
         {
-            Item = item;
+            Key = key;
             State = state;
         }
 
-        public Element Item { get; }
+        public string Key { get; }
 
         public bool State { get; }
     }

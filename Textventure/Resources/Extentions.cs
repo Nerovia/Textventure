@@ -25,6 +25,12 @@ namespace Textventure.Resources
                 action(element);
         }
 
+        public static void ForEach<T>(this IList<T> instance, Action<T> action)
+        {
+            foreach (T element in instance)
+                action(element);
+        }
+
         public static IEnumerable<T> Convert<T, M>(this IEnumerable<M> instance, Func<M, T> morphFunction)
         {
             var t = new List<T>();

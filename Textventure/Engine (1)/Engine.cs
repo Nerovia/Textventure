@@ -29,6 +29,10 @@ namespace Textventure.Engine
             ListOptions,
             Interact,
             Respond,
+            ShowInventory,
+            ListItems,
+            PickItem,
+            Combine,
         }
 
 
@@ -36,6 +40,7 @@ namespace Textventure.Engine
         public BasicEngine(World world, Size windowSize)
         {
             World = world;
+            World.Focus = World.GetReference<Scene>(World.StartKey);
             World.FocusChanged += OnFocusChanged;
             WindowSize = windowSize;
         }
@@ -68,16 +73,22 @@ namespace Textventure.Engine
         
         protected virtual Rectangle ResponseFrame { get => new Rectangle(SeparatorFrame.Left, SeparatorFrame.Bottom, SeparatorFrame.Width, OuterFrame.Bottom - SeparatorFrame.Bottom - 2).Margin(2, 1); }
 
-        
+        protected virtual Rectangle InventoryItemsFrame { get => Rectangle.FromLTRB(OuterFrame.Left, OuterFrame.Top, OuterFrame.Right, InventoryDescriptionFrame.Top).Margin(6, 3); }
+
+        protected virtual Rectangle InventoryDescriptionFrame { get => OuterFrame.Crop(14, VerticalAlignment.Bottom).Margin(4, 2); }
+
+
 
         protected string currentDescription;
 
         protected string currentResponse;
 
+        protected Item selectedItem = null;
+
         protected Dictionary<char, IOption> currentOptions;
 
+        protected Dictionary<char, Item> currentItems;
 
-        
         public override void Init()
         {
             UI.Init(WindowSize);
@@ -114,7 +125,12 @@ namespace Textventure.Engine
 
                 case State.Interact:
                     IOption option;
-                    if (currentOptions.TryGetValue(Console.ReadKey(true).KeyChar, out option))
+                    var input = Console.ReadKey(true);
+                    if (input.KeyChar == 'i')
+                    {
+                        EngineState = State.ShowInventory;
+                    }
+                    else if (currentOptions.TryGetValue(input.KeyChar, out option))
                     {
                         if (option is Interaction)
                         {
@@ -123,11 +139,87 @@ namespace Textventure.Engine
                             UI.Wait(0.3, true);
                             currentOptions = DrawOptions(World.Focus, true, 0.3);
                         }
-                        else if (option is Element)
+                        else if (option is Scene)
                         {
-                            World.Focus = option as Element;
+                            World.Focus = option as Scene;
                             EngineState = State.ClearFrame;
                         }
+                    }
+                    break;
+
+                case State.ShowInventory:
+                    DrawInventory();
+                    UI.Wait(0.3, true);
+                    DrawTitle("Inventory");
+                    UI.Wait(0.7, false);
+                    selectedItem = null;
+                    EngineState = State.ListItems;
+                    break;
+
+                case State.ListItems:
+                    currentItems = ListItems(true, 0.3);
+                    EngineState = State.PickItem;
+                    break;
+
+                case State.PickItem:
+                    var input2 = Console.ReadKey(true);
+                    Item item;
+                    if (input2.KeyChar == 'x')
+                    {
+                        EngineState = State.ClearFrame;
+                    }
+                    else if (currentItems.TryGetValue(input2.KeyChar, out item))
+                    {
+                        if (selectedItem == item)
+                        {
+                            UI.Clear(InventoryDescriptionFrame.Margin(2, 1));
+                            UI.Write(InventoryDescriptionFrame.Margin(2, 1), $"Combining {item.Name} with ...");
+                            EngineState = State.Combine;
+                        }
+                        else
+                        {
+                            selectedItem = item;
+                            UI.Clear(InventoryDescriptionFrame.Margin(2, 1));
+                            UI.Write(InventoryDescriptionFrame.Margin(2, 1), item.Evaluate());
+                        }
+                    }
+                    break;
+
+                case State.Combine:
+                    var input3 = Console.ReadKey(true);
+                    Item item3 = null;
+                    ICombinable combinable = null;
+                    if (input3.KeyChar == 'x')
+                    {
+                        combinable = World.Focus;
+                    }
+                    else if (currentItems.TryGetValue(input3.KeyChar, out item3))
+                    {
+                        if (item3 == selectedItem)
+                        {
+                            UI.Clear(InventoryDescriptionFrame.Margin(2, 1));
+                            UI.Write(InventoryDescriptionFrame.Margin(2, 1), item3.Evaluate());
+                            EngineState = State.PickItem;
+                            break;
+                        }
+                        combinable = item3;
+                    }
+
+                    if (combinable != null)
+                    {
+                        var combination = combinable.GetAvailableCombinationWith(selectedItem);
+                        if (combination != null)
+                        {
+                            UI.Clear(InventoryDescriptionFrame.Margin(2, 1));
+                            UI.Write(InventoryDescriptionFrame.Margin(2, 1), combination.Evaluate());
+                            EngineState = State.ListItems;
+                        }
+                        else
+                        {
+                            UI.Clear(InventoryDescriptionFrame.Margin(2, 1));
+                            UI.Write(InventoryDescriptionFrame.Margin(2, 1), "Nothing happens...");
+                        }
+                        EngineState = State.ListItems;
                     }
                     break;
             }
@@ -139,6 +231,44 @@ namespace Textventure.Engine
             EngineState = State.ClearFrame;
         }
 
+        protected virtual void DrawInventory()
+        {
+            UI.DrawBox(OuterFrame, new BoxOptions()
+            {
+                outline = BoxOutline.Single,
+                fill = true,
+            });
+
+            UI.DrawBox(InventoryDescriptionFrame, new BoxOptions()
+            {
+                outline = BoxOutline.Double,
+                fill = false,
+            });
+        }
+
+        protected virtual Dictionary<char, Item> ListItems(bool skip, double interval)
+        {
+            var options = new Dictionary<char, Item>();
+            var linebreak = $"\n[w]{{{interval}}}";
+            if (skip)
+                linebreak = "\n";
+            var text = "[i]";
+
+            char e = '1';
+            foreach (var items in World.Player.GetAvailableItems())
+            {
+                options.Add(e, items);
+                text += $"[[{e}] {items.Name}{linebreak}";
+                if (++e > '8')
+                    break;
+            }
+
+            text += $"[[X] {ExitInteractionName} {World.Focus}";
+
+            UI.Write(InventoryItemsFrame, text, new WriteOptions() { showCursor = false });
+
+            return options;
+        }
 
         protected virtual void DrawScene()
         {
@@ -185,7 +315,7 @@ namespace Textventure.Engine
             UI.Write(ResponseFrame, response);
         }
 
-        protected virtual Dictionary<char, IOption> DrawOptions(Element focus, bool skip, double interval)
+        protected virtual Dictionary<char, IOption> DrawOptions(Scene focus, bool skip, double interval)
         {
             var options = new Dictionary<char, IOption>();
             var linebreak = $"\n[w]{{{interval}}}";
@@ -203,7 +333,7 @@ namespace Textventure.Engine
             }
 
             e = 'a';
-            foreach (var item in focus.GetAvailableItems())
+            foreach (var item in focus.GetAvailableSubScenes())
             {
                 if (e == 'a' && options.Count > 0)
                     text += '\n';
@@ -215,12 +345,13 @@ namespace Textventure.Engine
             }
 
             e = 'x';
-            if (focus.Parent != null)
+            if (focus.Parent is Scene)
             {
+                var parent = focus.Parent as Scene;
                 if (options.Count > 0)
                     text += '\n';
-                options.Add(e, focus.Parent);
-                text += $"[[{e}] {ExitInteractionName} { focus.Parent.Name}";
+                options.Add(e, parent);
+                text += $"[[{e}] {ExitInteractionName} {parent.Name}";
             }
 
             UI.Write(OptionsFrame, text, new WriteOptions() { showCursor = false });
